@@ -1,4 +1,5 @@
 import './globals.css';
+import { Analytics } from '@vercel/analytics/next';
 
 export const metadata = {
   title: 'Screened',
@@ -24,7 +25,9 @@ export default function RootLayout({ children }) {
         <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
         <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,401,500,501,700,701,900,901&display=swap" rel="stylesheet" />
       </head>
-      <body>{children}</body>
+      <body>{children}
+         <Analytics />
+      </body>
     </html>
   );
 }
