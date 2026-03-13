@@ -525,3 +525,100 @@
   color: #a6a09b;
   line-height: 1.6;
 }
+
+@media (max-width: 600px) {
+  .landing {
+    padding: 20px 30px;
+    justify-content: flex-start;
+    padding-top: 80px;
+  }
+
+  .credit {
+    font-size: 11px;
+    top: 16px;
+    right: 16px;
+  }
+
+  .form {
+    width: 100%;
+  }
+
+  .title {
+    font-size: 76px;
+    letter-spacing: -2px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+  }
+
+  .inputRow {
+    width: 100%;
+  }
+
+  .usernameInput {
+    width: 100%;
+  }
+
+  .btn {
+    width: 100%;
+    font-size: 14px;
+  }
+
+  .about {
+    font-size: 13px;
+  }
+
+  /* Receipt */
+  .receiptView {
+    justify-content: flex-start;
+    padding-top: 60px;
+    overflow-y: auto;
+  }
+
+  .receiptNav {
+    top: 16px;
+    left: 16px;
+    right: 16px;
+    width: auto;
+  }
+
+  .receipt {
+    width: calc(100vw - 32px);
+    max-width: 100%;
+  }
+
+  .stamp {
+    width: 90px;
+    height: 80px;
+    top: 10px;
+    right: 8px;
+  }
+
+  .rStore {
+    font-size: 40px;
+  }
+
+  .rColRight {
+    width: auto;
+    gap: 20px;
+  }
+
+  .rFilmTitle {
+    font-size: 12px;
+    width: auto;
+    flex: 1;
+  }
+
+  .rFilmRuntime {
+    font-size: 11px;
+  }
+
+  .rFilmStars {
+    font-size: 11px;
+  }
+
+  .rDiagType {
+    font-size: 28px;
+  }
+}
