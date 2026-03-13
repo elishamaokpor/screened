@@ -105,6 +105,7 @@
   flex-direction: column;
   gap: 11.931px;
   align-items: center;
+  box-sizing: border-box;
 }
 
 .inputRow {
@@ -526,41 +527,51 @@
   line-height: 1.6;
 }
 
+/* ---- MOBILE ---- */
 @media (max-width: 600px) {
   .landing {
-    padding: 20px 30px;
+    padding: 80px 30px 20px;
     justify-content: flex-start;
-    padding-top: 80px;
+    align-items: flex-start;
   }
 
-  .credit {
+  .landingModal {
+    width: 100%;
+  }
+
+  .topbarCredit {
     font-size: 11px;
     top: 16px;
     right: 16px;
   }
 
-  .form {
-    width: 100%;
-  }
-
   .title {
-    font-size: 76px;
-    letter-spacing: -2px;
+    font-size: 52px;
+    letter-spacing: -1.5px;
   }
 
   .subtitle {
-    font-size: 14px;
+    font-size: 13px;
+  }
+
+  .form {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .inputRow {
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
-  .usernameInput {
+  .input {
     width: 100%;
+    min-width: 0;
   }
 
-  .btn {
+  .btnPrimary {
     width: 100%;
     font-size: 14px;
   }
@@ -569,23 +580,31 @@
     font-size: 13px;
   }
 
-  /* Receipt */
+  /* Receipt view */
   .receiptView {
     justify-content: flex-start;
-    padding-top: 60px;
+    padding-top: 0;
     overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .receiptNav {
-    top: 16px;
-    left: 16px;
-    right: 16px;
-    width: auto;
+    position: sticky;
+    top: 0;
+    width: calc(100% - 32px);
+    max-width: 100%;
+    padding: 16px 0 16px;
+    z-index: 10;
   }
 
   .receipt {
     width: calc(100vw - 32px);
     max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .receiptInner {
+    padding: 24px 20px 24px;
   }
 
   .stamp {
@@ -597,28 +616,58 @@
 
   .rStore {
     font-size: 40px;
+    letter-spacing: -1.2px;
   }
 
-  .rColRight {
-    width: auto;
-    gap: 20px;
+  /* Film rows */
+  .rFilmRow {
+    flex-wrap: nowrap;
+    gap: 8px;
   }
 
   .rFilmTitle {
     font-size: 12px;
     width: auto;
-    flex: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .rFilmRight {
+    flex: 0 0 auto;
+    width: auto;
+    gap: 12px;
   }
 
   .rFilmRuntime {
     font-size: 11px;
+    width: auto;
   }
 
   .rFilmStars {
     font-size: 11px;
+    width: auto;
+  }
+
+  /* Column header right side */
+  .rColRight {
+    width: auto;
+    gap: 20px;
+  }
+
+  /* Diagnosis */
+  .rDiagnosis {
+    padding: 20px 24px;
   }
 
   .rDiagType {
     font-size: 28px;
+    letter-spacing: -1px;
+  }
+
+  .rDiagRoast {
+    font-size: 12px;
   }
 }

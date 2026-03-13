@@ -159,7 +159,7 @@ export default function Home() {
                   PRINT MY RECEIPT
                 </button>
                 {error && <div className={styles.errorMsg}>{error}</div>}
-                <button className={styles.demoLink} onClick={() => generate('lifewithoutme')}>
+                <button className={styles.demoLink} onClick={() => generate('elishamaaaaa')}>
                   or try the demo
                 </button>
               </div>
