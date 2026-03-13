@@ -7,14 +7,14 @@ export const metadata = {
     icon: '/favicon.png',
   },
   openGraph: {
-    title: 'Screened',
-    description: 'Your Letterboxd receipt generator',
-    images: ['/og-image.png'],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    images: ['/og-image.png'],
-  },
+  title: 'Screened',
+  description: 'Your Letterboxd receipt generator',
+  images: ['https://getscreened.vercel.app/og-image.png'],
+},
+twitter: {
+  card: 'summary_large_image',
+  images: ['https://getscreened.vercel.app/og-image.png'],
+},
 };
 
 export default function RootLayout({ children }) {
