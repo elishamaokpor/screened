@@ -12,7 +12,6 @@ export async function GET(request) {
   }
 
   try {
-    // Step 1: fetch their public RSS feed
     const rssUrl = `https://letterboxd.com/${username}/rss/`;
     const res = await fetch(rssUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0' }
@@ -23,8 +22,6 @@ export async function GET(request) {
     }
 
     const xml = await res.text();
-
-    // Step 2: parse all diary entries
     const items = xml.split('<item>').slice(1);
 
     if (items.length === 0) {
@@ -54,67 +51,62 @@ export async function GET(request) {
       return NextResponse.json({ error: 'No films logged yet' }, { status: 404 });
     }
 
-    // Step 3: enrich with TMDB in batches to avoid rate limits
-    const enriched = [];
-    const batchSize = 5;
+    // Enrich with TMDB — parallel with 3s timeout per request
+    const enriched = await Promise.all(entries.map(async (entry) => {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3000);
 
-    for (let i = 0; i < entries.length; i += batchSize) {
-      const batch = entries.slice(i, i + batchSize);
-      const results = await Promise.all(batch.map(async (entry) => {
-        try {
-          const searchRes = await fetch(
-            `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(entry.title)}&page=1`,
-            { headers: { Authorization: `Bearer ${TMDB_KEY}` } }
-          );
-          const searchData = await searchRes.json();
-          const movie = searchData.results?.[0];
-          if (!movie) return { ...entry, runtime: null, genres: [], director: null };
+        const searchRes = await fetch(
+          `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(entry.title)}&page=1`,
+          { headers: { Authorization: `Bearer ${TMDB_KEY}` }, signal: controller.signal }
+        );
+        const searchData = await searchRes.json();
+        clearTimeout(timeout);
 
-          const detailRes = await fetch(
-            `https://api.themoviedb.org/3/movie/${movie.id}?append_to_response=credits`,
-            { headers: { Authorization: `Bearer ${TMDB_KEY}` } }
-          );
-          const detail = await detailRes.json();
+        const movie = searchData.results?.[0];
+        if (!movie) return { ...entry, runtime: null, genres: [], director: null };
 
-          const director = detail.credits?.crew?.find(p => p.job === 'Director')?.name || null;
-          const genres = detail.genres?.map(g => g.name) || [];
-          const runtime = detail.runtime || null;
+        const detailRes = await fetch(
+          `https://api.themoviedb.org/3/movie/${movie.id}?append_to_response=credits`,
+          { headers: { Authorization: `Bearer ${TMDB_KEY}` } }
+        );
+        const detail = await detailRes.json();
 
-          return { ...entry, runtime, genres, director };
-        } catch {
-          return { ...entry, runtime: null, genres: [], director: null };
-        }
-      }));
-      enriched.push(...results);
-    }
+        const director = detail.credits?.crew?.find(p => p.job === 'Director')?.name || null;
+        const genres = detail.genres?.map(g => g.name) || [];
+        const runtime = detail.runtime || null;
 
-    // Step 4: calculate stats
-    const totalFilms = enriched.length;
+        return { ...entry, runtime, genres, director };
+      } catch {
+        return { ...entry, runtime: null, genres: [], director: null };
+      }
+    }));
+
+    // Stats
+    const rawCount = enriched.length;
+    const hitRssLimit = rawCount >= 48;
+    const totalFilmsDisplay = hitRssLimit ? '50+' : String(rawCount);
 
     const totalMinutes = enriched.reduce((sum, f) => sum + (f.runtime || 0), 0);
     const hours = Math.floor(totalMinutes / 60);
     const mins = totalMinutes % 60;
     const totalRuntime = `${hours}hrs ${mins}m`;
 
-    // top director
     const directorCount = {};
     enriched.forEach(f => {
       if (f.director) directorCount[f.director] = (directorCount[f.director] || 0) + 1;
     });
-    const topDirectorEntries = Object.entries(directorCount).sort((a, b) => b[1] - a[1]);
-    const topDirector = topDirectorEntries[0]?.[0] || null;
+    const topDirector = Object.entries(directorCount).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
 
-    // top genre
     const genreCount = {};
     enriched.forEach(f => {
       f.genres.forEach(g => {
         genreCount[g] = (genreCount[g] || 0) + 1;
       });
     });
-    const topGenreEntries = Object.entries(genreCount).sort((a, b) => b[1] - a[1]);
-    const topGenre = topGenreEntries[0]?.[0] || null;
+    const topGenre = Object.entries(genreCount).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
 
-    // top 5 highest rated
     const top5 = [...enriched]
       .filter(f => f.rating !== null)
       .sort((a, b) => b.rating - a.rating)
@@ -125,7 +117,6 @@ export async function GET(request) {
         stars: starsFromRating(f.rating),
       }));
 
-    // Step 5: personality algorithm
     const ratedFilms = enriched.filter(f => f.rating !== null);
     const avgRating = ratedFilms.length > 0
       ? ratedFilms.reduce((s, f) => s + f.rating, 0) / ratedFilms.length
@@ -137,21 +128,19 @@ export async function GET(request) {
     const dramaCount = enriched.filter(f => f.genres.includes('Drama')).length;
     const lowRatings = ratedFilms.filter(f => f.rating < 3).length;
     const lowRatingRatio = ratedFilms.length > 0 ? lowRatings / ratedFilms.length : 0;
+    const uniqueGenres = new Set(enriched.flatMap(f => f.genres));
+    const genreVariety = uniqueGenres.size;
 
     let personality;
 
-    if (totalFilms >= 30) {
-      personality = 'The Completionist';
-    } else if (totalFilms > 0 && horrorCount / totalFilms >= 0.35) {
+    if (rawCount > 0 && horrorCount / rawCount >= 0.35) {
       personality = 'The Horehead';
     } else if (lowRatingRatio >= 0.4 || avgRating < 2.8) {
       personality = 'The Contrarian';
-    } else if (
-      totalFilms > 0 &&
-      (romanceCount + dramaCount) / totalFilms >= 0.5 &&
-      avgRating >= 3.5
-    ) {
+    } else if (rawCount > 0 && (romanceCount + dramaCount) / rawCount >= 0.5 && avgRating >= 3.5) {
       personality = 'The New Romantic';
+    } else if (genreVariety >= 8 && avgRating >= 3.5) {
+      personality = 'The Completionist';
     } else {
       personality = 'The Criterionist';
     }
@@ -164,10 +153,10 @@ export async function GET(request) {
       'The Contrarian': 'F',
     };
 
-    // Step 6: generate AI roast
     const roast = await generateRoast({
       personality,
-      totalFilms,
+      totalFilms: totalFilmsDisplay,
+      hitRssLimit,
       topDirector,
       topGenre,
       avgRating: avgRatingRounded,
@@ -177,7 +166,7 @@ export async function GET(request) {
     return NextResponse.json({
       username,
       films: top5,
-      totalFilms,
+      totalFilms: totalFilmsDisplay,
       totalRuntime,
       topDirector: topDirector || '—',
       topGenre: topGenre || '—',
@@ -191,16 +180,19 @@ export async function GET(request) {
   }
 }
 
-async function generateRoast({ personality, totalFilms, topDirector, topGenre, avgRating, topFilm }) {
+async function generateRoast({ personality, totalFilms, hitRssLimit, topDirector, topGenre, avgRating, topFilm }) {
   try {
     const directorLine = topDirector ? `Their most-watched director is ${topDirector}.` : '';
     const genreLine = topGenre ? `Their top genre is ${topGenre}.` : '';
     const filmLine = topFilm ? `Their highest rated film is "${topFilm}".` : '';
+    const countLine = hitRssLimit
+      ? `They have logged at least 50 films — probably many more.`
+      : `They have logged ${totalFilms} films.`;
 
-    const prompt = `Roast this Letterboxd user in exactly 1-2 sentences. Be witty, specific, and a little mean — like a friend who knows too much about your taste. Do not use quotation marks. No preamble, no sign-off, just the roast.
+    const prompt = `Roast this Letterboxd user in exactly 1 sentence, maximum 20 words. Be witty and a little mean — like a friend who knows too much about their taste. No quotation marks, no preamble, just the roast.
 
 Their personality type: ${personality}
-Total films logged: ${totalFilms}
+${countLine}
 Average rating: ${avgRating} out of 5
 ${directorLine}
 ${genreLine}
@@ -215,7 +207,7 @@ ${filmLine}`;
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 120,
+        max_tokens: 80,
         messages: [{ role: 'user', content: prompt }],
       }),
     });
