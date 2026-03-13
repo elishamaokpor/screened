@@ -6,6 +6,15 @@ export const metadata = {
   icons: {
     icon: '/favicon.png',
   },
+  openGraph: {
+    title: 'Screened',
+    description: 'Your Letterboxd receipt generator',
+    images: ['/og-image.png'],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['/og-image.png'],
+  },
 };
 
 export default function RootLayout({ children }) {
