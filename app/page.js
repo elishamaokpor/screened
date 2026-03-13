@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './page.module.css';
 
 const STAMPS = {
@@ -9,44 +9,6 @@ const STAMPS = {
   'The New Romantic':  '/stamps/bminus.png',
   'The Horehead':      '/stamps/cplus.png',
   'The Contrarian':    '/stamps/f.png',
-};
-
-const ROASTS = {
-  'The Criterionist': [
-    "You sat through three hours of cinema just to prove you're unimpressed. Incredible use of time. Clap for yourself.",
-    "Your watchlist looks like a film syllabus nobody asked for.",
-    "Rates every 3-hour black-and-white Lithuanian film 4.5 stars and calls it meditative.",
-    "You've seen 400 films. Zero of them were fun on purpose.",
-    "Nobody asked what Tarkovsky would think. You told them anyway.",
-  ],
-  'The Contrarian': [
-    "Watched the most hyped film of the year just to call it mid. You're so brave.",
-    "Your Letterboxd is a graveyard of 2-star reviews for films everyone else enjoyed.",
-    "Popular opinion found dead. You were the last one seen with it.",
-    "If a film has over 50k ratings, you immediately develop critical standards.",
-    "You sat through three hours of cinema just to prove you're unimpressed. Revolutionary thinking.",
-  ],
-  'The Completionist': [
-    "At this point you're not watching films, you're haunting them.",
-    "Your hobby is pressing play. Your other hobby is also pressing play.",
-    "You watch films the way other people eat — constantly, joylessly, out of habit.",
-    "You've seen everything. Absorbed nothing.",
-    "Somehow every single one is pretty good.",
-  ],
-  'The Horehead': [
-    "Still waiting for one of these to actually scare you. It won't.",
-    "Every review is just 'not scary but fun' with slight variations.",
-    "You rate slashers and Bergman on the same scale and feel nothing about that.",
-    "You don't watch movies. You watch people make terrible decisions in the dark.",
-    "Knows the entire Friday the 13th timeline but couldn't tell you their best friend's birthday.",
-  ],
-  'The New Romantic': [
-    "You're not watching films. You're curating a heartbreak playlist.",
-    "Logged 47 films about yearning. You doing okay?",
-    "Your Letterboxd is just beautiful people staring out windows while sad music plays.",
-    "You gave it 5 stars because it made you cry. That's not a review. That's a symptom.",
-    "One A24 film and it became your entire interior life.",
-  ],
 };
 
 const LOADING_MSGS = [
@@ -58,25 +20,26 @@ const LOADING_MSGS = [
   'reading your diary...',
 ];
 
-function pickRoast(type) {
-  const pool = ROASTS[type] || ROASTS['The Criterionist'];
-  return pool[Math.floor(Math.random() * pool.length)];
-}
-
 export default function Home() {
-  const [view, setView] = useState('landing'); // landing | loading | receipt
+  const [view, setView] = useState('landing');
   const [username, setUsername] = useState('');
   const [loadingMsg, setLoadingMsg] = useState(LOADING_MSGS[0]);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const u = params.get('u');
+    if (u) generate(u);
+  }, []);
 
   async function generate(user) {
-    const u = user || username.trim();
+    const u = (user || username).trim();
     if (!u) return;
     setError(null);
     setView('loading');
 
-    // cycle loading messages
     let i = 0;
     const interval = setInterval(() => {
       i = (i + 1) % LOADING_MSGS.length;
@@ -94,8 +57,9 @@ export default function Home() {
         return;
       }
 
-      setData({ ...json, roast: pickRoast(json.personality) });
+      setData(json);
       setView('receipt');
+      window.history.pushState({}, '', `?u=${encodeURIComponent(u)}`);
     } catch (err) {
       clearInterval(interval);
       setError('Something went wrong. Try again.');
@@ -106,21 +70,19 @@ export default function Home() {
   function goBack() {
     setView('landing');
     setData(null);
+    window.history.pushState({}, '', '/');
   }
 
-  function share() {
-    if (navigator.share) {
-      navigator.share({ title: 'Screened', text: `my letterboxd receipt — screened.film` });
-    } else {
-      navigator.clipboard.writeText(window.location.href).then(() => {
-        alert('Link copied!');
-      });
-    }
-  }
+  const share = () => {
+    const url = `${window.location.origin}?u=${data.username}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   return (
     <div className={styles.root}>
-      {/* Background video */}
       <div className={styles.bg}>
         <video
           className={styles.bgVideo}
@@ -130,7 +92,6 @@ export default function Home() {
         <div className={styles.bgOverlay} />
       </div>
 
-      {/* LANDING */}
       {view === 'landing' && (
         <div className={styles.landing}>
           <div className={styles.topbarCredit}>
@@ -173,7 +134,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* LOADING */}
       {view === 'loading' && (
         <div className={styles.loading}>
           <LoadingFrames />
@@ -181,43 +141,32 @@ export default function Home() {
         </div>
       )}
 
-      {/* RECEIPT */}
       {view === 'receipt' && data && (
         <div className={styles.receiptView}>
           <div className={styles.receiptNav}>
             <button className={styles.backBtn} onClick={goBack}>← back</button>
-            <button className={styles.shareBtn} onClick={share}>SHARE</button>
+            <button className={styles.shareBtn} onClick={share}>
+              {copied ? 'COPIED!' : 'SHARE'}
+            </button>
           </div>
 
           <div className={styles.receipt}>
-            <img
-              className={styles.texture}
-              src="/texture.png"
-              alt=""
-            />
-            <img
-              className={styles.stamp}
-              src={STAMPS[data.personality]}
-              alt={data.grade}
-            />
+            <img className={styles.texture} src="/texture.png" alt="" />
+            <img className={styles.stamp} src={STAMPS[data.personality]} alt={data.grade} />
 
             <div className={styles.receiptInner}>
-              {/* Header */}
               <div className={styles.rHeader}>
                 <div className={styles.rStore}>Scree<em>ned</em></div>
                 <div className={styles.rTagline}>your letterboxd in film.</div>
               </div>
 
               <div className={styles.rBody}>
-                {/* Order meta */}
                 <div className={styles.rMeta}>
                   <div>order #{String(Math.floor(Math.random()*900)+1).padStart(3,'0')} for @{data.username.toUpperCase()}</div>
                   <div>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase()}</div>
                 </div>
 
-                {/* Film table */}
                 <div className={styles.rColSection}>
-          
                   <div className={styles.rColHeader}>
                     <span>film</span>
                     <div className={styles.rColRight}>
@@ -225,7 +174,6 @@ export default function Home() {
                       <span>★</span>
                     </div>
                   </div>
-              
                 </div>
 
                 <div className={styles.rFilms}>
@@ -240,7 +188,6 @@ export default function Home() {
                   ))}
                 </div>
 
-                {/* Stats */}
                 <div className={styles.rStats}>
                   <StatRow label="total films" value={`${data.totalFilms} films`} />
                   <StatRow label="total runtime" value={data.totalRuntime} />
@@ -248,7 +195,6 @@ export default function Home() {
                   <StatRow label="top genre" value={data.topGenre} />
                 </div>
 
-                {/* Diagnosis */}
                 <div className={styles.rDiagnosis}>
                   <div className={styles.rDiagLabel}>your diagnosis</div>
                   <div className={styles.rDiagType}>{data.personality}</div>
@@ -267,9 +213,7 @@ function StatRow({ label, value }) {
   return (
     <div className={styles.rRow}>
       <span className={styles.rLabel}>{label}</span>
-      <span className={styles.rDots}>
-        
-      </span>
+      <span className={styles.rDots}></span>
       <span className={styles.rVal}>{value}</span>
     </div>
   );
