@@ -34,6 +34,19 @@ export default function Home() {
     if (u) generate(u);
   }, []);
 
+  useEffect(() => {
+  if (view === 'receipt' && data) {
+    const timer = setTimeout(() => {
+      window.Tally?.openPopup('rj25RN', {
+        width: 450,
+        overlay: true,
+        doNotShowAfterSubmit: true,
+      });
+    }, 2000);
+    return () => clearTimeout(timer);
+  }
+}, [view, data]);
+
   async function generate(user) {
     const u = (user || username).trim();
     if (!u) return;

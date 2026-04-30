@@ -1,5 +1,6 @@
 import './globals.css';
 import { Analytics } from '@vercel/analytics/next';
+import Script from 'next/script';
 
 export const metadata = {
   title: 'Screened',
@@ -27,6 +28,7 @@ export default function RootLayout({ children }) {
       </head>
       <body>{children}
          <Analytics />
+         <Script src="https://tally.so/widgets/embed.js" strategy="afterInteractive" />
       </body>
     </html>
   );
