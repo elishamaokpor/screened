@@ -36,6 +36,7 @@ export default function Home() {
 
   useEffect(() => {
   if (view === 'receipt' && data) {
+    window.Tally?.loadEmbeds();
     const timer = setTimeout(() => {
       window.Tally?.openPopup('rj25RN', {
         width: window.innerWidth < 768 ? 380 : 450,
