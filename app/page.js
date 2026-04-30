@@ -38,11 +38,11 @@ export default function Home() {
   if (view === 'receipt' && data) {
     const timer = setTimeout(() => {
       window.Tally?.openPopup('rj25RN', {
-        width: 450,
+        width: window.innerWidth < 768 ? 380 : 450,
         overlay: true,
         doNotShowAfterSubmit: true,
       });
-    }, 2000);
+    }, 500);
     return () => clearTimeout(timer);
   }
 }, [view, data]);
